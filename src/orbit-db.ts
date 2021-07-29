@@ -2,7 +2,7 @@ import { create } from "ipfs";
 import OrbitDB from "orbit-db";
 import DocumentStore from "orbit-db-docstore";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const ipfsSettings = {
   repo: "./orbitdb",

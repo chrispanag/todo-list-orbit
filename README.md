@@ -1,6 +1,8 @@
 # todo-list-orbit
 
-A simple React application that uses [IPFS](https://github.com/ipfs) and [OrbitDB](https://github.com/orbit-db) to store and display a list of todo items in a decentralized manner.
+A simple React application that uses [IPFS](https://github.com/ipfs) and [OrbitDB](https://github.com/orbitdb) to store and display a list of todo items in a decentralized manner.
+
+Live example: [https://todo-list-orbit.on.fleek.co/](https://todo-list-orbit.on.fleek.co/)
 
 ## How to use
 

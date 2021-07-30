@@ -18,7 +18,6 @@ export default function useOrbitDb<T>(address: string) {
     }
 
     const newData = orbitDb.query((s) => true);
-    console.log(newData);
     setData([...newData]);
   };
 

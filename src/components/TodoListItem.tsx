@@ -25,7 +25,7 @@ function TodoListItem({ item, mutateData, getOne }: ITodoListItemProps) {
     };
 
     return (
-        <div key={item._id}>
+        <div>
             <input type="checkbox" checked={item.done} onChange={(e) => toggleData(item._id, item.done, e.target)} />
             <span>{item.text}</span>
         </div>

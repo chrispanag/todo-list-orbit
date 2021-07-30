@@ -16,7 +16,7 @@ function Database({ address, type }: IDatabaseProps) {
             <div><b>Address:</b> {connectedAddress}</div>
             <br />
             <div>----</div>
-            {data.map((i) => <TodoListItem item={i} mutateData={mutateData} getOne={getOne} />)}
+            {data.map((i) => <TodoListItem key={i._id} item={i} mutateData={mutateData} getOne={getOne} />)}
             <br />
             <div>----</div>
             <Controls getData={getData} dropDb={dropDb} addData={addData} />

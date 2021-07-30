@@ -9,40 +9,48 @@ const ipfsSettings = {
   config: {
     Addresses: {
       Swarm: [
-        // Use IPFS dev signal server
-        // '/dns4/star-signal.cloud.ipfs.team/tcp/443/wss/p2p-webrtc-star',
-        // '/dns4/ws-star.discovery.libp2p.io/tcp/443/wss/p2p-websocket-star',
-        // Use IPFS dev webrtc signal server
         "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
         "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
-        "/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/",
-        // Use local signal server
-        // '/ip4/0.0.0.0/tcp/9090/wss/p2p-webrtc-star',
+        "/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/"
       ],
     },
   },
 };
 
-async function initOrbitInstance(address: string, type: "create" | "open") {
+export type DBDocument<T> = T & { _id: string };
+
+function createOrOpenDatabase<T extends { _id: string }>(
+  type: "create" | "open",
+  address: string,
+  orbit: OrbitDB
+) {
+  switch (type) {
+    case "create":
+      return orbit.docs<T>(address, {
+        accessController: { write: ["*"] },
+      });
+    case "open":
+      return orbit.open(address, { type: "docstore" }) as Promise<
+        DocumentStore<T>
+      >;
+    default:
+      throw Error("Unkown type!");
+  }
+}
+
+async function initOrbitInstance<T extends { _id: string }>(
+  address: string,
+  type: "create" | "open"
+) {
   try {
     const ipfs = await create(ipfsSettings);
     const orbit = await OrbitDB.createInstance(ipfs as any);
-    let db: DocumentStore<any>;
-    if (type === "create") {
-      db = await orbit.docs(address, {
-        accessController: { write: ["*"] },
-      });
-    } else {
-      db = (await orbit.open(address, {
-        type: "docstore",
-        sync: true,
-      } as IOpenOptions)) as DocumentStore<any>;
-    }
+
+    const db = await createOrOpenDatabase<T>(type, address, orbit);
 
     await db.load();
 
     db.events.on("peer", (peer) => console.log("Connected: " + peer));
-    console.log("test");
 
     return db;
   } catch (e) {
@@ -51,14 +59,14 @@ async function initOrbitInstance(address: string, type: "create" | "open") {
   }
 }
 
-export default function useOrbitDb(
+export default function useOrbitDb<T>(
   address: string,
   type: "create" | "open" = "create"
 ) {
-  const [orbitDb, setOrbitDb] = useState<DocumentStore<any> | null>(null);
-  const [data, setData] = useState<
-    Array<{ text: string; done: boolean; _id: string }>
-  >([]);
+  const [orbitDb, setOrbitDb] = useState<DocumentStore<DBDocument<T>> | null>(
+    null
+  );
+  const [data, setData] = useState<DBDocument<T>[]>([]);
 
   const getData = () => {
     if (!orbitDb) {
@@ -84,13 +92,20 @@ export default function useOrbitDb(
     return data[0];
   };
 
-  const mutateData = async (_id: string, mutation: Record<string, any>) => {
+  // TODO: Remove any
+  const mutateData = async (_id: string, mutation: any) => {
     if (!orbitDb) {
       return;
     }
 
-    const data = getOne(_id);
-    const newData = Object.assign(data, mutation);
+    const doc = getOne(_id);
+    if (!doc) {
+      return;
+    }
+
+    const { _id: _, ...rest } = doc;
+
+    const newData = Object.assign(rest, mutation);
     await orbitDb.put({ _id, ...newData });
     getData();
   };
@@ -102,15 +117,14 @@ export default function useOrbitDb(
     orbitDb.drop();
   };
 
-  const addData = async (value: string) => {
+  const addData = async (obj: T) => {
     if (!orbitDb) {
       return;
     }
 
     await orbitDb.put({
-      text: value,
-      done: false,
-      _id: orbitDb.identity.id + "/" + Date.now(),
+      ...obj,
+      _id: orbitDb.identity.id + "/" + Date.now(), // Create a unique id
     });
     getData();
   };
@@ -127,13 +141,12 @@ export default function useOrbitDb(
       console.log("replicated");
       const newData = orbitDb.query(() => true);
       setData([...newData]);
-      console.log(newData);
     });
   }, [orbitDb]);
 
   useEffect(() => {
     async function init() {
-      const db = await initOrbitInstance(address, type);
+      const db = await initOrbitInstance<DBDocument<T>>(address, type);
       setOrbitDb(db);
     }
 

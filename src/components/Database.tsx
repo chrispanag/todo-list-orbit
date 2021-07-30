@@ -1,10 +1,11 @@
 import useOrbitDb from "../hooks/orbit-db";
+import { DatabaseInstantiationType } from "../utilities/database";
 import Controls from "./Controls";
 import TodoListItem, { ITodoListItem } from "./TodoListItem";
 
 interface IDatabaseProps {
     address: string;
-    type: "create" | "open";
+    type: DatabaseInstantiationType;
 }
 
 function Database({ address, type }: IDatabaseProps) {

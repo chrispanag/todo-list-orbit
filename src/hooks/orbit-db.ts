@@ -1,73 +1,22 @@
-import { create } from "ipfs";
-import OrbitDB from "orbit-db";
 import DocumentStore from "orbit-db-docstore";
 
 import { useEffect, useState } from "react";
-
-const ipfsSettings = {
-  repo: "./orbitdb",
-  config: {
-    Addresses: {
-      Swarm: [
-        "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
-        "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/",
-        "/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/"
-      ],
-    },
-  },
-};
-
-export type DBDocument<T> = T & { _id: string };
-
-function createOrOpenDatabase<T extends { _id: string }>(
-  type: "create" | "open",
-  address: string,
-  orbit: OrbitDB
-) {
-  switch (type) {
-    case "create":
-      return orbit.docs<T>(address, {
-        accessController: { write: ["*"] },
-      });
-    case "open":
-      return orbit.open(address, { type: "docstore" }) as Promise<
-        DocumentStore<T>
-      >;
-    default:
-      throw Error("Unkown type!");
-  }
-}
-
-async function initOrbitInstance<T extends { _id: string }>(
-  address: string,
-  type: "create" | "open"
-) {
-  try {
-    const ipfs = await create(ipfsSettings);
-    const orbit = await OrbitDB.createInstance(ipfs as any);
-
-    const db = await createOrOpenDatabase<T>(type, address, orbit);
-
-    await db.load();
-
-    db.events.on("peer", (peer) => console.log("Connected: " + peer));
-
-    return db;
-  } catch (e) {
-    console.log(e);
-    throw e;
-  }
-}
+import initOrbitInstance, {
+  DatabaseInstantiationType,
+  DBDocument,
+  DBFields,
+} from "../utilities/database";
 
 export default function useOrbitDb<T>(
   address: string,
-  type: "create" | "open" = "create"
+  type: DatabaseInstantiationType = "create"
 ) {
   const [orbitDb, setOrbitDb] = useState<DocumentStore<DBDocument<T>> | null>(
     null
   );
-  const [data, setData] = useState<DBDocument<T>[]>([]);
+  const [data, setData] = useState<Array<DBDocument<T>>>([]);
 
+  // Query all data
   const getData = () => {
     if (!orbitDb) {
       setData([]);
@@ -79,6 +28,7 @@ export default function useOrbitDb<T>(
     setData([...newData]);
   };
 
+  // Get one item by id
   const getOne = (_id: string) => {
     if (!orbitDb) {
       return null;
@@ -92,8 +42,11 @@ export default function useOrbitDb<T>(
     return data[0];
   };
 
-  // TODO: Remove any
-  const mutateData = async (_id: string, mutation: any) => {
+  // Edit a document
+  const mutateData = async (
+    _id: string,
+    mutation: Partial<Omit<T, keyof DBFields>>
+  ) => {
     if (!orbitDb) {
       return;
     }
@@ -103,20 +56,12 @@ export default function useOrbitDb<T>(
       return;
     }
 
-    const { _id: _, ...rest } = doc;
-
-    const newData = Object.assign(rest, mutation);
-    await orbitDb.put({ _id, ...newData });
+    const newData = { ...doc, ...mutation };
+    await orbitDb.put(newData);
     getData();
   };
 
-  const dropDb = () => {
-    if (!orbitDb) {
-      return;
-    }
-    orbitDb.drop();
-  };
-
+  // Add new item to the database
   const addData = async (obj: T) => {
     if (!orbitDb) {
       return;
@@ -129,6 +74,15 @@ export default function useOrbitDb<T>(
     getData();
   };
 
+  // Delete this database
+  const dropDb = () => {
+    if (!orbitDb) {
+      return;
+    }
+    orbitDb.drop();
+  };
+
+  // Initialize replication event listeners
   useEffect(() => {
     if (!orbitDb) {
       return;
@@ -144,6 +98,7 @@ export default function useOrbitDb<T>(
     });
   }, [orbitDb]);
 
+  // Initialize the database
   useEffect(() => {
     async function init() {
       const db = await initOrbitInstance<DBDocument<T>>(address, type);

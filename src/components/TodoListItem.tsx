@@ -1,4 +1,4 @@
-import { DBDocument } from "../hooks/orbit-db";
+import { DBDocument } from "../utilities/database";
 
 export interface ITodoListItem {
     done: boolean;

@@ -1,16 +1,10 @@
+import { useEffect, useState } from "react";
+import OrbitDB from "orbit-db";
 import DocumentStore from "orbit-db-docstore";
 
-import { useEffect, useState } from "react";
-import initOrbitInstance, {
-  DatabaseInstantiationType,
-  DBDocument,
-  DBFields,
-} from "../utilities/database";
+import initOrbitInstance, { DBDocument, DBFields } from "../utilities/database";
 
-export default function useOrbitDb<T>(
-  address: string,
-  type: DatabaseInstantiationType = "create"
-) {
+export default function useOrbitDb<T>(address: string) {
   const [orbitDb, setOrbitDb] = useState<DocumentStore<DBDocument<T>> | null>(
     null
   );
@@ -101,12 +95,15 @@ export default function useOrbitDb<T>(
   // Initialize the database
   useEffect(() => {
     async function init() {
-      const db = await initOrbitInstance<DBDocument<T>>(address, type);
+      const db = await initOrbitInstance<DBDocument<T>>(
+        address,
+        OrbitDB.isValidAddress(address) ? "open" : "create"
+      );
       setOrbitDb(db);
     }
 
     init();
-  }, [address, type]);
+  }, [address]);
 
   return {
     getData,

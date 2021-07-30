@@ -21,10 +21,14 @@ function Controls({ getData, dropDb, addData }: IControlsProps) {
 
     return (
         <div className="Controls">
-            <input onChange={(e) => setNewData(e.target.value)} value={newData} />
-            <button onClick={addATodo} disabled={newData.length < 1}>Add Data</button>
-            <button onClick={getData}>Get Data</button>
-            <button onClick={dropDb}>Drop Database</button>
+            <div className="Input" style={{ marginTop: '10px' }}>
+                <input onChange={(e) => setNewData(e.target.value)} value={newData} />
+                <button onClick={addATodo} disabled={newData.length < 1}>Add Data</button>
+            </div>
+            <div className="OtherControls" style={{ marginTop: '10px' }}>
+                <button onClick={getData}>Get Data</button>
+                <button onClick={dropDb}>Drop Database</button>
+            </div>
         </div>
     )
 }
